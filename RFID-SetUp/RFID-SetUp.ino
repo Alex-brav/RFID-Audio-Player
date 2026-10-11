@@ -3,19 +3,20 @@
 
   What it does:
     Reads each RFID disk you tap on the reader and prints its ID (UID)
-    to the Serial Monitor as a ready-to-paste line for the main sketch:
+    to the Serial Monitor, for example:
 
-        {"46219615219642129", 1},
+        46219615219642129
 
   How to use:
     1. Wire the RC522 reader the same way as the main project
        (SDA/SS -> pin 9, RST -> pin 8, plus the SPI pins and 3.3V/GND).
     2. Upload this sketch.
     3. Open the Serial Monitor (Tools > Serial Monitor) at 9600 baud.
-    4. Tap each disk on the reader, one at a time, in the order you
-       want the tracks to play (disk 1 = track 1, disk 2 = track 2, ...).
-    5. Copy the printed lines into diskLibrary[] in the main sketch,
-       replacing the placeholder "UID_FOR_DISK_X" entries.
+    4. Tap one disk on the reader.
+    5. Copy the number that appears and paste it into diskLibrary[] in
+       the main sketch, replacing one "UID_FOR_DISK_X" placeholder
+       (keep the quotation marks).
+    6. Repeat for each disk.
 
   Note: the UID is built the same way as in the main sketch (each byte
   written as a decimal number, joined with no spaces), so the IDs will
@@ -30,8 +31,7 @@
 #define RST_PIN 8
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
-int diskCount = 0;       // how many disks have been scanned so far
-String lastUid = "";     // the most recent disk, to avoid double-counting
+String lastUid = "";     // the most recent disk, to avoid printing it twice in a row
 
 void setup() {
   Serial.begin(9600);
@@ -48,8 +48,7 @@ void setup() {
   }
 
   Serial.println(F("RFID UID Scanner ready."));
-  Serial.println(F("Tap each disk on the reader, one at a time."));
-  Serial.println(F("Copy each line below into diskLibrary[] in the main sketch."));
+  Serial.println(F("Tap a disk on the reader to see its UID."));
   Serial.println();
 }
 
@@ -65,17 +64,10 @@ void loop() {
   }
 
   if (uid == lastUid) {
-    Serial.println(F("(Same disk as last time - skipped. Tap the next disk.)"));
+    Serial.println(F("(Same disk as last time - tap a different disk.)"));
   } else {
-    diskCount++;
     lastUid = uid;
-
-    // Print a ready-to-paste line, e.g.  {"46219615219642129", 1},
-    Serial.print(F("  {\""));
-    Serial.print(uid);
-    Serial.print(F("\", "));
-    Serial.print(diskCount);
-    Serial.println(F("},"));
+    Serial.println(uid);
   }
 
   // Tell the tag to stop so it isn't read again until it's removed and re-tapped
