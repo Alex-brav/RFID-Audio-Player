@@ -9,15 +9,15 @@
 //
 //  true  = "Play only while the disk is on the reader"
 //          The track plays while the disk sits on the reader and pauses
-//          shortly after you take it off. Putting the same disk back
-//          starts its track over from the beginning.
+//          shortly after the disk is taken off. Putting the same disk
+//          back starts its track over from the beginning.
 //
 //  false = "Keep playing after the disk is removed"
 //          Tapping a disk starts its track, and it keeps playing after
-//          you take the disk away. Tapping a DIFFERENT disk switches to
+//          the disk is taken away. Tapping a DIFFERENT disk switches to
 //          that disk's track. Tapping the SAME disk again does nothing.
 //          Because the player is set to repeat the current track, it
-//          will keep looping until you tap another disk. Press the
+//          will keep looping until another disk is tapped. Press the
 //          volume knob to mute it.
 //
 const bool stopWhenDiskRemoved = true;
@@ -29,8 +29,14 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 // --- Disk library: map each UID to a track number ---
 // Replace each "UID_FOR_DISK_X" with the UID printed by the
-// RFID_UID_Scanner sketch. Track numbers refer to the order the audio
-// files were copied onto the DFPlayer (see the manual).
+// RFID_UID_Scanner sketch.
+//
+// The track number decides which audio file plays. Files must be
+// MP3s in the main folder of the DFPlayer, named with three digits:
+//   track 1  -> 001.mp3
+//   track 2  -> 002.mp3
+//   track 10 -> 010.mp3
+// The order the files were copied in does NOT matter, only the name.
 struct DiskEntry {
   const char* uid;
   int trackNumber;
@@ -135,6 +141,15 @@ int findTrackForDisk(String uid) {
   return -1;
 }
 
+// Turn a track number into a file path, e.g. 3 -> "/003.mp3"
+String fileNameForTrack(int track) {
+  String name = String(track);
+  while (name.length() < 3) {
+    name = "0" + name;   // add leading zeros until it's 3 digits
+  }
+  return "/" + name + ".mp3";
+}
+
 void checkDisk() {
   bool sawKnownDisk = false;
 
@@ -161,11 +176,19 @@ void checkDisk() {
         // Only start a track if it's a different disk than what's
         // currently playing, OR nothing is currently playing
         if (!isPlaying || disk != currentDisk) {
-          player.playFileNum(track);
+          String fileName = fileNameForTrack(track);
+
+          if (player.playSpecFile(fileName)) {
+            Serial.print("Playing ");
+            Serial.println(fileName);
+          } else {
+            Serial.print("Could not play ");
+            Serial.print(fileName);
+            Serial.println(" - check that the file exists and is named correctly");
+          }
+
           isPlaying = true;
           currentDisk = disk;
-          Serial.print("Playing track ");
-          Serial.println(track);
         }
       } else {
         Serial.println("Unknown disk - ignoring");
